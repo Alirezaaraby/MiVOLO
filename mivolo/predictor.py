@@ -29,7 +29,7 @@ class Predictor:
         out_im = None
         if self.draw:
             # plot results on image
-            out_im = detected_objects.plot()
+            out_im, age, sex = detected_objects.plot()
 
         return detected_objects, out_im
 

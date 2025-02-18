@@ -105,12 +105,6 @@ def main():
             img = cv2.imread(img_p)
             detected_objects, out_im = predictor.recognize(img)
 
-            if args.draw:
-                bname = os.path.splitext(os.path.basename(img_p))[0]
-                filename = os.path.join(args.output, f"out_{bname}.jpg")
-                cv2.imwrite(filename, out_im)
-                _logger.info(f"Saved result to {filename}")
-
 
 if __name__ == "__main__":
     main()

@@ -9,9 +9,14 @@ from ultralytics import YOLO
 from ultralytics.engine.results import Results
 
 # because of ultralytics bug it is important to unset CUBLAS_WORKSPACE_CONFIG after the module importing
-os.unsetenv("CUBLAS_WORKSPACE_CONFIG")
+import os
 
+if hasattr(os, "unsetenv"):  # Check if the function exists
+    os.unsetenv("CUBLAS_WORKSPACE_CONFIG")
+else:
+    os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)  # Remove from environment variables
 
+import cv2
 class Detector:
     def __init__(
         self,
@@ -39,6 +44,7 @@ class Detector:
 
     def predict(self, image: Union[np.ndarray, str, "PIL.Image"]) -> PersonAndFaceResult:
         results: Results = self.yolo.predict(image, **self.detector_kwargs)[0]
+        cv2.imwrite("yolo.jpg",results.plot())
         return PersonAndFaceResult(results)
 
     def track(self, image: Union[np.ndarray, str, "PIL.Image"]) -> PersonAndFaceResult:

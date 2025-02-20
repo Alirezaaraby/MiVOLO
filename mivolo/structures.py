@@ -11,7 +11,12 @@ from ultralytics.engine.results import Results
 from ultralytics.utils.plotting import Annotator, colors
 
 # because of ultralytics bug it is important to unset CUBLAS_WORKSPACE_CONFIG after the module importing
-os.unsetenv("CUBLAS_WORKSPACE_CONFIG")
+import os
+
+if hasattr(os, "unsetenv"):  # Check if the function exists
+    os.unsetenv("CUBLAS_WORKSPACE_CONFIG")
+else:
+    os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)  # Remove from environment variables
 
 AGE_GENDER_TYPE = Tuple[float, str]
 

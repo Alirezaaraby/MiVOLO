@@ -201,7 +201,7 @@ def prepare_classification_images(
     if len(prepared_images) == 0:
         return None
 
-    prepared_input = torch.concat(prepared_images)
+    prepared_input = torch.cat(prepared_images)
 
     if device:
         prepared_input = prepared_input.to(device)

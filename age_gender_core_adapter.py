@@ -56,8 +56,8 @@ class MiVOLOCoreAdapter(CoreAdapter):
         os.makedirs(dir_path, exist_ok=True)
 
         # Add age & gender text
-        cv2.putText(image, f"Age: {age}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.putText(image, f"Sex: {sex}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+        # cv2.putText(image, f"Age: {age}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # cv2.putText(image, f"Sex: {sex}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
         # Save image
         cv2.imwrite(os.path.join(dir_path, f"mivolo_{index}.jpg"), image)
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     print("Adapter Loaded")
 
     # Run on a sample image
-    img_path = "face_1.jpg"
+    img_path = "face_3.jpg"
     image = cv2.imread(img_path)
 
     age, sex = adapter.process_frame(image, id="test_run", index=1, save=True)

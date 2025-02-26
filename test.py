@@ -1,28 +1,51 @@
+# Test With Single Class
+
+# import cv2
+# from faceplus_core_adapter_with_age_gender import FacePlusCoreAdapter
+
+# # Initialize the face recognition adapter
+# face_adapter = FacePlusCoreAdapter()
+# face_adapter.load()  # Load the model and known faces
+
+# # Load an image frame (example from a file)
+# image_path = "image.png"
+# frame = cv2.imread(image_path)
+
+# # Process the frame
+# result = face_adapter.process_frame(frame, id=1)
+
+# # Print the result
+# print(result)
+
+# Test With Seperated Class
+
 import cv2
-from mivolo.predictor import Predictor  # Assuming Predictor is in mivolo.predictor module
+from faceplus_core_adapter import FacePlusCoreAdapter
+from age_gender_core_adapter import MiVOLOCoreAdapter
+import numpy as np
 
-# Load the detected face image
-face_image = cv2.imread("1.jpg")
+# Initialize the face recognition adapter
+face_adapter = FacePlusCoreAdapter()
+face_adapter.load()  # Load the model and known faces
 
-# Initialize the Predictor class
-class Config:
-    def __init__(self):
-        self.checkpoint = "mivolo_imbd.pth.tar"
-        self.with_persons = True
-        self.detector_weights = "./yolov8x_person_face.pt"
-        self.device = "cuda:0"
-        self.draw = True
-        self.disable_faces = False  # Add this line to fix the AttributeError
+# Initialize the age detection adapter
+age_adapter = MiVOLOCoreAdapter()
+age_adapter.load()  # Load the age detection model
 
-config = Config()
-predictor = Predictor(config, verbose=True)
+# Load an image frame (example from a file)
+image_path = "image.png"
+frame = cv2.imread(image_path)
 
-# Recognize age and gender from the detected face image
-detected_objects, out_im, age, sex = predictor.recognize(face_image)
-print(sex, age)
-# Optionally, save or display the output image with annotations
-if out_im is not None:
-    cv2.imwrite("output_annotated.jpg", out_im)
-    cv2.imshow("Annotated Image", out_im)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+# Process the frame to get face crops and labels
+results = face_adapter.process_frame(frame, id=1)
+
+final = []
+
+for label, face_crop in results:
+    if face_crop is not None and isinstance(face_crop, np.ndarray) and face_crop.size > 0:
+        age, gender = age_adapter.process_frame(face_crop, id=1)
+        final.append((label, age, gender))
+    else:
+        final.append((label, None, None))
+
+print(final)

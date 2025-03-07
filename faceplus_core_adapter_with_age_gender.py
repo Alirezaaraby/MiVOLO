@@ -53,49 +53,54 @@ class FacePlusCoreAdapter(CoreAdapter):
         predictions = []
 
         if faces is not None:
-            for box in boxes:
-                age, sex = None, None
-                x, y, x2, y2 = [int(coord) for coord in box]
-                face_crop = img_rgb[y:y2, x:x2]
-                face = self.transform(face_crop).unsqueeze(0).to(self.device)
+            if boxes is not None:
+                for box in boxes:
+                    age, sex = None, None
+                    x, y, x2, y2 = [int(coord) for coord in box]
+                    face_crop = img_rgb[y:y2, x:x2]
+                    face = self.transform(face_crop).unsqueeze(0).to(self.device)
 
-                with torch.no_grad():
-                    face_embedding = self.resnet(face)
+                    with torch.no_grad():
+                        face_embedding = self.resnet(face)
 
-                similarities = {
-                    name: torch.nn.functional.cosine_similarity(known_emb, face_embedding).item()
-                    for name, known_emb in self.known_embeddings.items()
-                }
-
-                best_match, best_score = max(similarities.items(), key=lambda x: x[1], default=("Unknown", 0))
-                label = best_match if best_score > threshold else "Unknown"
-
-                if label == 'Unknown': 
-                    unknown_faces_dir = "./data/unknown"
-                    last_unknown_id = self.get_last_unknown_face(unknown_faces_dir)
-
-                    unknown_similarities = {
-                        unknown_id: torch.nn.functional.cosine_similarity(unknown_emb, face_embedding).item()
-                        for unknown_id, unknown_emb in self.unknown_embeddings.items()
+                    similarities = {
+                        name: torch.nn.functional.cosine_similarity(known_emb, face_embedding).item()
+                        for name, known_emb in self.known_embeddings.items()
                     }
 
-                    best_unknown_match, best_unknown_score = max(unknown_similarities.items(), key=lambda x: x[1], default=(None, 0))
+                    best_match, best_score = max(similarities.items(), key=lambda x: x[1], default=("Unknown", 0))
+                    label = best_match if best_score > threshold else "Unknown"
 
-                    if best_unknown_score > threshold:
-                        label = f"Unknown_{best_unknown_match}"
-                    else:
-                        new_unknown_id = int(last_unknown_id) + 1
-                        self.unknown_embeddings[new_unknown_id] = face_embedding
-                        label = "Unknown"
-                        unknown_path = os.path.join(unknown_faces_dir, f"unknown_{new_unknown_id}.jpg")
-                        cv2.imwrite(unknown_path, cv2.cvtColor(face_crop, cv2.COLOR_RGB2BGR))
+                    if label == 'Unknown': 
+                        unknown_faces_dir = "./data/unknown"
+                        last_unknown_id = self.get_last_unknown_face(unknown_faces_dir)
 
-                        age, sex = self.mivolo_adapter.process_frame(face_crop, id, index, save)
+                        unknown_similarities = {
+                            unknown_id: torch.nn.functional.cosine_similarity(unknown_emb, face_embedding).item()
+                            for unknown_id, unknown_emb in self.unknown_embeddings.items()
+                        }
 
-                predictions.append((label, best_score, (x, y, x2, y2), sex, age))
+                        best_unknown_match, best_unknown_score = max(unknown_similarities.items(), key=lambda x: x[1], default=(None, 0))
 
-            if save:
-                self.draw_and_save_frame(frame, predictions, id, index)
+                        if best_unknown_score > threshold:
+                            label = f"Unknown_{best_unknown_match}"
+                        else:
+                            new_unknown_id = int(last_unknown_id) + 1
+                            self.unknown_embeddings[new_unknown_id] = face_embedding
+                            label = "Unknown"
+                            unknown_path = os.path.join(unknown_faces_dir, f"unknown_{new_unknown_id}.jpg")
+                            cv2.imwrite(unknown_path, cv2.cvtColor(face_crop, cv2.COLOR_RGB2BGR))
+
+                            age, sex = self.mivolo_adapter.process_frame(face_crop, id, index, save)
+
+                    predictions.append((label, best_score, (x, y, x2, y2), sex, age))
+
+                if save:
+                    self.draw_and_save_frame(frame, predictions, id, index)
+            else:
+                return "No faces detected"
+        else:
+            "No faces detected"
 
         print(predictions)
         detected_faces = [label for label, _, _, _, _ in predictions]

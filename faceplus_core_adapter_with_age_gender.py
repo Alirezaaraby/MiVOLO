@@ -107,10 +107,10 @@ class FacePlusCoreAdapter(CoreAdapter):
             color = (0, 255, 0) if "Unknown" not in label else (0, 0, 255)
             cv2.rectangle(frame, (x, y), (x2, y2), color, 2)
 
-            label_text = f"{label} ({int(score * 100)}%)"
+            label_text = f"{label}"
             if "Unknown" in label and age is not None and sex is not None:
-                label_text += f", Age: {age}, Gender: {sex}"
-
+                label_text += f", {'M' if sex.lower() == 'male' else 'F'}, {age}"
+                
             cv2.putText(frame, label_text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
 
         self.save_frame(frame, id, index)

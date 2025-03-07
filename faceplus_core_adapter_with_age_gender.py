@@ -37,7 +37,18 @@ class FacePlusCoreAdapter(CoreAdapter):
         boxes, faces = self.mtcnn.detect(img_rgb, landmarks=False)
         return img_rgb, boxes, faces
 
-    def process_frame(self, frame, id, index=0, save=False, threshold=0.6):
+    def save_frame(self, frame, id, index):
+        save_dir = "./output_frames"
+        os.makedirs(save_dir, exist_ok=True)  # Ensure the directory exists
+
+        filename = f"{id}_{index}.jpg"
+        save_path = os.path.join(save_dir, filename)
+
+        cv2.imwrite(save_path, frame)
+        print(f"Saved frame at {save_path}")
+
+
+    def process_frame(self, frame, id, index=0, save=True, threshold=0.6):
         img_rgb, boxes, faces = self.face_detection(frame)
         predictions = []
 
@@ -71,7 +82,7 @@ class FacePlusCoreAdapter(CoreAdapter):
                     best_unknown_match, best_unknown_score = max(unknown_similarities.items(), key=lambda x: x[1], default=(None, 0))
 
                     if best_unknown_score > threshold:
-                        label = f"Unknown_{best_unknown_match}"  # Return matched unknown ID
+                        label = f"Unknown_{best_unknown_match}"
                     else:
                         new_unknown_id = int(last_unknown_id) + 1
                         self.unknown_embeddings[new_unknown_id] = face_embedding
@@ -83,14 +94,27 @@ class FacePlusCoreAdapter(CoreAdapter):
 
                 predictions.append((label, best_score, (x, y, x2, y2), sex, age))
 
-                if save:
-                    self.save_frame(frame, id, index, label, best_score, (x, y, x2, y2))
+            if save:
+                self.draw_and_save_frame(frame, predictions, id, index)
 
         print(predictions)
         detected_faces = [label for label, _, _, _, _ in predictions]
         detected_faces_str = ", ".join(detected_faces)
         return detected_faces_str
     
+    def draw_and_save_frame(self, frame, predictions, id, index):
+        for label, score, (x, y, x2, y2), sex, age in predictions:
+            color = (0, 255, 0) if "Unknown" not in label else (0, 0, 255)
+            cv2.rectangle(frame, (x, y), (x2, y2), color, 2)
+
+            label_text = f"{label} ({int(score * 100)}%)"
+            if "Unknown" in label and age is not None and sex is not None:
+                label_text += f", Age: {age}, Gender: {sex}"
+
+            cv2.putText(frame, label_text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+
+        self.save_frame(frame, id, index)
+
     def load_known_faces(self):
         known_faces_dir = "./data/known"
         known_embeddings = {}

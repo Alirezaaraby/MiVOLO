@@ -15,7 +15,7 @@ class MiVOLOCoreAdapter(CoreAdapter):
 
     def load(self):
         """Load the age-gender predictor model."""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.detector = Detector()  # Initialize object detector
 
         self.age_gender_model = MiVOLO(

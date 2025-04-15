@@ -7,9 +7,13 @@ from torchvision import transforms
 from facenet_pytorch import InceptionResnetV1, MTCNN
 import glob
 # from age_gender_core_adapter import AgeGenderCoreAdapter
-from age_gender_core_adapter import MiVOLOCoreAdapter  # Import MiVOLOCoreAdapter
+from .age_gender_core_adapter import MiVOLOCoreAdapter  # Import MiVOLOCoreAdapter
 
 class FacePlusCoreAdapter(CoreAdapter):
+    
+    known_faces_dir = "./data/known"
+    unknown_faces_dir = "./data/unknown"
+    
     def __init__(self) -> None:
         super(FacePlusCoreAdapter, self).__init__("faceplus")
         self.loaded = False
@@ -27,6 +31,12 @@ class FacePlusCoreAdapter(CoreAdapter):
             transforms.Normalize(mean=[0.5], std=[0.5])
         ])
         
+        # Create directories if not exist
+        if not os.path.isdir(self.known_faces_dir):
+            os.makedirs(self.known_faces_dir)
+        if not os.path.isdir(self.unknown_faces_dir):
+            os.makedirs(self.unknown_faces_dir)
+        
         self.known_embeddings = self.load_known_faces()
         self.unknown_embeddings = self.load_unknown_faces()
         self.mivolo_adapter.load()  # Load MiVOLO model
@@ -38,10 +48,10 @@ class FacePlusCoreAdapter(CoreAdapter):
         return img_rgb, boxes, faces
 
     def save_frame(self, frame, id, index):
-        save_dir = "./output_frames"
+        save_dir = './static/output/{}/'.format(id)
         os.makedirs(save_dir, exist_ok=True)  # Ensure the directory exists
 
-        filename = f"{id}_{index}.jpg"
+        filename = f'faceplus{index}.jpg'
         save_path = os.path.join(save_dir, filename)
 
         cv2.imwrite(save_path, frame)
@@ -72,8 +82,7 @@ class FacePlusCoreAdapter(CoreAdapter):
                     label = best_match if best_score > threshold else "Unknown"
 
                     if label == 'Unknown': 
-                        unknown_faces_dir = "./data/unknown"
-                        last_unknown_id = self.get_last_unknown_face(unknown_faces_dir)
+                        last_unknown_id = self.get_last_unknown_face(self.unknown_faces_dir)
 
                         unknown_similarities = {
                             unknown_id: torch.nn.functional.cosine_similarity(unknown_emb, face_embedding).item()
@@ -88,7 +97,7 @@ class FacePlusCoreAdapter(CoreAdapter):
                             new_unknown_id = int(last_unknown_id) + 1
                             self.unknown_embeddings[new_unknown_id] = face_embedding
                             label = "Unknown"
-                            unknown_path = os.path.join(unknown_faces_dir, f"unknown_{new_unknown_id}.jpg")
+                            unknown_path = os.path.join(self.unknown_faces_dir, f"unknown_{new_unknown_id}.jpg")
                             cv2.imwrite(unknown_path, cv2.cvtColor(face_crop, cv2.COLOR_RGB2BGR))
 
                             age, sex = self.mivolo_adapter.process_frame(face_crop, id, index, save)
@@ -121,13 +130,12 @@ class FacePlusCoreAdapter(CoreAdapter):
         self.save_frame(frame, id, index)
 
     def load_known_faces(self):
-        known_faces_dir = "./data/known"
         known_embeddings = {}
 
-        for file in os.listdir(known_faces_dir):
+        for file in os.listdir(self.known_faces_dir):
             name, ext = os.path.splitext(file)
             if ext.lower() in [".jpg", ".jpeg", ".png"]:
-                img = cv2.imread(os.path.join(known_faces_dir, file))
+                img = cv2.imread(os.path.join(self.known_faces_dir, file))
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 face, prob = self.mtcnn(img_rgb, return_prob=True)
 
@@ -139,16 +147,15 @@ class FacePlusCoreAdapter(CoreAdapter):
         return known_embeddings
     
     def load_unknown_faces(self):
-        unknown_faces_dir = "./data/unknown"
         unknown_embeddings = {}
 
-        if not os.path.exists(unknown_faces_dir):
-            os.makedirs(unknown_faces_dir)
+        if not os.path.exists(self.unknown_faces_dir):
+            os.makedirs(self.unknown_faces_dir)
 
-        for file in os.listdir(unknown_faces_dir):
+        for file in os.listdir(self.unknown_faces_dir):
             name, ext = os.path.splitext(file)
             if ext.lower() in [".jpg", ".jpeg", ".png"]:
-                img = cv2.imread(os.path.join(unknown_faces_dir, file))
+                img = cv2.imread(os.path.join(self.unknown_faces_dir, file))
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 face, prob = self.mtcnn(img_rgb, return_prob=True)
 

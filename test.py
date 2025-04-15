@@ -23,6 +23,7 @@ import cv2
 from faceplus_core_adapter import FacePlusCoreAdapter
 from age_gender_core_adapter import MiVOLOCoreAdapter
 import numpy as np
+from PIL import Image  # Import Image from PIL
 
 # Initialize the face recognition adapter
 face_adapter = FacePlusCoreAdapter()
@@ -33,8 +34,8 @@ age_adapter = MiVOLOCoreAdapter()
 age_adapter.load()  # Load the age detection model
 
 # Load an image frame (example from a file)
-image_path = "image.png"
-frame = cv2.imread(image_path)
+src = "amir.jpg"
+frame = Image.open(src).convert('RGB')
 
 # Process the frame to get face crops and labels
 results = face_adapter.process_frame(frame, id=1)
